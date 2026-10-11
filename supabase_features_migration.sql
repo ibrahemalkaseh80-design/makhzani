@@ -82,21 +82,110 @@ using (exists (select 1 from public.daily_sessions ds where ds.id = session_id a
 with check (exists (select 1 from public.daily_sessions ds where ds.id = session_id and public.is_shop_member(ds.shop_id)));
 
 
--- سياسة عرض عامة للمتجر: لا تظهر بيانات المتجر أو المنتج إلا عند تفعيل العرض.
-grant select on public.shops, public.products to anon, authenticated;
-
+-- واجهة المتجر العامة تستخدم RPC آمنًا ولا تمنح الزوار قراءة جدول المخزون مباشرة.
+revoke select on public.shops, public.products from anon;
 drop policy if exists shops_public_enabled_store on public.shops;
-create policy shops_public_enabled_store on public.shops
-  for select to anon, authenticated
-  using (store_enabled = true);
-
 drop policy if exists products_public_store_catalog on public.products;
-create policy products_public_store_catalog on public.products
-  for select to anon, authenticated
-  using (
-    store_visible = true
-    and exists (
-      select 1 from public.shops s
-      where s.id = products.shop_id and s.store_enabled = true
-    )
-  );
+
+create or replace function public.get_public_store(p_slug text)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select jsonb_build_object(
+    'shop_name', s.name,
+    'products', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', p.id,
+        'name', p.name,
+        'category', coalesce(p.category, 'أخرى'),
+        'sale_price', p.sale_price,
+        'in_stock', (p.quantity > 0)
+      ) order by p.created_at desc)
+      from public.products p
+      where p.shop_id = s.id and p.store_visible = true
+    ), '[]'::jsonb)
+  )
+  from public.shops s
+  where s.store_slug = p_slug and s.store_enabled = true
+  limit 1;
+$$;
+revoke all on function public.get_public_store(text) from public;
+grant execute on function public.get_public_store(text) to anon, authenticated;
+
+-- أدوات إدارة أعضاء المحل: لا يمكن إلا لمسؤول المحل تنفيذها.
+create or replace function public.admin_list_shop_members(p_shop_id uuid)
+returns table(user_id uuid, role text, created_at timestamptz, email text)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.is_shop_admin(p_shop_id) then
+    raise exception 'Admin role required';
+  end if;
+  return query
+    select sm.user_id, sm.role, sm.created_at, au.email::text
+    from public.shop_members sm
+    join auth.users au on au.id = sm.user_id
+    where sm.shop_id = p_shop_id
+    order by sm.created_at;
+end;
+$$;
+
+create or replace function public.admin_add_shop_member_by_email(p_shop_id uuid, p_email text, p_role text)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare target_user_id uuid;
+begin
+  if not public.is_shop_admin(p_shop_id) then
+    raise exception 'Admin role required';
+  end if;
+  if p_role not in ('Admin', 'Coordinator', 'Staff') then
+    raise exception 'Invalid role';
+  end if;
+  select id into target_user_id from auth.users where lower(email) = lower(trim(p_email)) limit 1;
+  if target_user_id is null then
+    raise exception 'No registered account found for this email';
+  end if;
+  insert into public.shop_members(shop_id, user_id, role)
+  values (p_shop_id, target_user_id, p_role)
+  on conflict (shop_id, user_id) do update set role = excluded.role;
+  return target_user_id;
+end;
+$$;
+
+create or replace function public.admin_remove_shop_member(p_shop_id uuid, p_user_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare target_role text;
+declare admin_count integer;
+begin
+  if not public.is_shop_admin(p_shop_id) then
+    raise exception 'Admin role required';
+  end if;
+  select role into target_role from public.shop_members where shop_id = p_shop_id and user_id = p_user_id;
+  if target_role = 'Admin' then
+    select count(*) into admin_count from public.shop_members where shop_id = p_shop_id and role = 'Admin';
+    if admin_count <= 1 then raise exception 'Cannot remove the last Admin'; end if;
+  end if;
+  delete from public.shop_members where shop_id = p_shop_id and user_id = p_user_id;
+  return found;
+end;
+$$;
+
+revoke all on function public.admin_list_shop_members(uuid) from public;
+revoke all on function public.admin_add_shop_member_by_email(uuid,text,text) from public;
+revoke all on function public.admin_remove_shop_member(uuid,uuid) from public;
+grant execute on function public.admin_list_shop_members(uuid) to authenticated;
+grant execute on function public.admin_add_shop_member_by_email(uuid,text,text) to authenticated;
+grant execute on function public.admin_remove_shop_member(uuid,uuid) to authenticated;
