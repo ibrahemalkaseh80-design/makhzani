@@ -5,7 +5,7 @@ alter table public.products
   add column if not exists purchase_price numeric(12,3) not null default 0 check (purchase_price >= 0),
   add column if not exists sale_price numeric(12,3) not null default 0 check (sale_price >= 0),
   add column if not exists sales_rep_phone text,
-  add column if not exists store_visible boolean not null default false;
+  add column if not exists store_visible boolean not null default false,\n  add column if not exists category text not null default 'أخرى';
 
 alter table public.shops
   add column if not exists store_slug text,
@@ -79,3 +79,23 @@ drop policy if exists daily_stock_counts_member_access on public.daily_stock_cou
 create policy daily_stock_counts_member_access on public.daily_stock_counts for all to authenticated
 using (exists (select 1 from public.daily_sessions ds where ds.id = session_id and public.is_shop_member(ds.shop_id)))
 with check (exists (select 1 from public.daily_sessions ds where ds.id = session_id and public.is_shop_member(ds.shop_id)));
+
+
+-- سياسة عرض عامة للمتجر: لا تظهر بيانات المتجر أو المنتج إلا عند تفعيل العرض.
+grant select on public.shops, public.products to anon, authenticated;
+
+drop policy if exists shops_public_enabled_store on public.shops;
+create policy shops_public_enabled_store on public.shops
+  for select to anon, authenticated
+  using (store_enabled = true);
+
+drop policy if exists products_public_store_catalog on public.products;
+create policy products_public_store_catalog on public.products
+  for select to anon, authenticated
+  using (
+    store_visible = true
+    and exists (
+      select 1 from public.shops s
+      where s.id = products.shop_id and s.store_enabled = true
+    )
+  );
