@@ -154,6 +154,18 @@ begin
   if target_user_id is null then
     raise exception 'No registered account found for this email';
   end if;
+  -- Prevent demoting the only Admin to a non-Admin role.
+  if p_role <> 'Admin' and exists (
+    select 1
+    from public.shop_members sm
+    where sm.shop_id = p_shop_id
+      and sm.user_id = target_user_id
+      and sm.role = 'Admin'
+      and (select count(*) from public.shop_members sm2
+           where sm2.shop_id = p_shop_id and sm2.role = 'Admin') <= 1
+  ) then
+    raise exception 'Cannot demote the last Admin';
+  end if;
   insert into public.shop_members(shop_id, user_id, role)
   values (p_shop_id, target_user_id, p_role)
   on conflict (shop_id, user_id) do update set role = excluded.role;
