@@ -5,7 +5,8 @@ alter table public.products
   add column if not exists purchase_price numeric(12,3) not null default 0 check (purchase_price >= 0),
   add column if not exists sale_price numeric(12,3) not null default 0 check (sale_price >= 0),
   add column if not exists sales_rep_phone text,
-  add column if not exists store_visible boolean not null default false,\n  add column if not exists category text not null default 'أخرى';
+  add column if not exists store_visible boolean not null default false,
+  add column if not exists category text not null default 'أخرى';
 
 alter table public.shops
   add column if not exists store_slug text,
