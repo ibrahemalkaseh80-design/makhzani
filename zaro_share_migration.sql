@@ -268,7 +268,7 @@ as $$
 declare q text := lower(trim(coalesce(p_query,'')));
 begin
   if auth.uid() is null then raise exception 'Sign in first'; end if;
-  if public.current_shop_role(p_shop_id) not in ('Staff','Admin','Partner') then
+  if coalesce(public.current_shop_role(p_shop_id),'') not in ('Staff','Admin','Partner') then
     raise exception 'Shop membership required';
   end if;
   if q = '' then return; end if;
