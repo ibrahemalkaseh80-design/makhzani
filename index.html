@@ -1,0 +1,126 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#111827">
+  <title>مخزني | إدارة المخزون</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    header {
+      background: #111827;
+      color: white;
+      padding: 24px 18px;
+    }
+    header h1 { margin: 0 0 8px; }
+    header p { margin: 0; color: #d1d5db; }
+    main {
+      max-width: 850px;
+      margin: 22px auto;
+      padding: 0 14px;
+    }
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px #0000000a;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    input { border: 1px solid #d1d5db; }
+    button {
+      border: 0;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+    }
+    .muted { color: #6b7280; font-size: 14px; }
+    #message { color: #047857; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>مخزني</h1>
+    <p>نظام إدارة المخزون والمنتجات</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>مرحباً بك 👋</h2>
+      <p>هاي أول نسخة من واجهة نظام مخزني.</p>
+      <p class="muted">
+        هذه نسخة تجريبية؛ المنتجات لسه مش محفوظة في قاعدة بيانات.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>إضافة منتج تجريبي</h2>
+      <form id="productForm">
+        <label for="productName">اسم المنتج</label>
+        <input id="productName" required placeholder="مثلاً: شاحن Type-C">
+
+        <label for="barcode">الباركود</label>
+        <input id="barcode" required placeholder="امسح أو اكتب الباركود">
+
+        <label for="quantity">الكمية</label>
+        <input id="quantity" type="number" min="0" step="1" required placeholder="مثلاً: 25">
+
+        <button type="submit">إضافة للقائمة التجريبية</button>
+      </form>
+      <p id="message" role="status"></p>
+    </section>
+
+    <section class="card">
+      <h2>المنتجات المضافة</h2>
+      <div id="products">لسه ما أضفنا منتجات.</div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById("productForm");
+    const products = document.getElementById("products");
+    const message = document.getElementById("message");
+
+    form.addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      const name = document.getElementById("productName").value.trim();
+      const barcode = document.getElementById("barcode").value.trim();
+      const quantity = document.getElementById("quantity").value;
+
+      const item = document.createElement("div");
+      item.className = "card";
+
+      const title = document.createElement("strong");
+      title.textContent = name;
+
+      const details = document.createElement("p");
+      details.textContent = "الباركود: " + barcode +
+        " | الكمية: " + quantity;
+
+      item.append(title, details);
+
+      if (products.textContent.includes("لسه ما أضفنا")) {
+        products.replaceChildren();
+      }
+
+      products.appendChild(item);
+      message.textContent = "تمت إضافة المنتج للتجربة.";
+      form.reset();
+    });
+  </script>
+</body>
+</html>
