@@ -179,8 +179,9 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
-declare target_role text;
-declare admin_count integer;
+declare
+  target_role text;
+  admin_count integer;
 begin
   if not public.is_shop_admin(p_shop_id) then
     raise exception 'Admin role required';
