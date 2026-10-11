@@ -39,6 +39,39 @@ alter table public.daily_sessions enable row level security;
 alter table public.daily_stock_counts enable row level security;
 alter table public.shop_members enable row level security;
 
+-- Recreate membership helpers as SECURITY DEFINER so row-level policies can
+-- safely check membership even though direct shop_members access is denied.
+create or replace function public.is_shop_member(p_shop_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select exists (
+    select 1 from public.shop_members sm
+    where sm.shop_id = p_shop_id and sm.user_id = auth.uid()
+  );
+$;
+
+create or replace function public.is_shop_admin(p_shop_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select exists (
+    select 1 from public.shop_members sm
+    where sm.shop_id = p_shop_id and sm.user_id = auth.uid() and sm.role = 'Admin'
+  );
+$;
+
+revoke all on function public.is_shop_member(uuid) from public;
+revoke all on function public.is_shop_admin(uuid) from public;
+grant execute on function public.is_shop_member(uuid) to authenticated;
+grant execute on function public.is_shop_admin(uuid) to authenticated;
+
 create or replace function public.is_shop_partner(p_shop_id uuid)
 returns boolean
 language sql
