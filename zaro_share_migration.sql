@@ -248,6 +248,59 @@ begin
 end;
 $$;
 
+create or replace function public.admin_list_shop_shares(p_shop_id uuid)
+returns table(user_id uuid, email text, role text)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $
+begin
+  if not public.is_shop_admin(p_shop_id) then
+    raise exception 'Admin role required';
+  end if;
+  return query
+    select sm.user_id, lower(u.email)::text, sm.role::text
+    from public.shop_members sm
+    join auth.users u on u.id = sm.user_id
+    where sm.shop_id = p_shop_id
+      and sm.role in ('Partner','Staff')
+    order by sm.role, lower(u.email);
+end;
+$;
+
+create or replace function public.admin_revoke_shop_share(p_shop_id uuid, p_email text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare target_email text := lower(trim(coalesce(p_email,'')));
+begin
+  if not public.is_shop_admin(p_shop_id) then
+    raise exception 'Admin role required';
+  end if;
+  if target_email = '' or position('@' in target_email) < 2 then
+    raise exception 'Valid email required';
+  end if;
+
+  -- Revoke active Partner/Staff membership immediately at the database level.
+  delete from public.shop_members sm
+  using auth.users u
+  where sm.user_id = u.id
+    and sm.shop_id = p_shop_id
+    and lower(u.email) = target_email
+    and sm.role in ('Partner','Staff');
+
+  -- Also invalidate any unused QR invitations for this email.
+  delete from public.shop_share_invites i
+  where i.shop_id = p_shop_id
+    and lower(i.target_email) = target_email;
+
+  return true;
+end;
+$;
+
 create or replace function public.employee_search_products(p_shop_id uuid, p_query text)
 returns table(
   id uuid,
@@ -292,6 +345,10 @@ $$;
 revoke all on function public.admin_create_shop_invite(uuid,text,text,text) from public;
 revoke all on function public.accept_shop_invite(text) from public;
 revoke all on function public.employee_search_products(uuid,text) from public;
+revoke all on function public.admin_list_shop_shares(uuid) from public;
+revoke all on function public.admin_revoke_shop_share(uuid,text) from public;
 grant execute on function public.admin_create_shop_invite(uuid,text,text,text) to authenticated;
 grant execute on function public.accept_shop_invite(text) to authenticated;
 grant execute on function public.employee_search_products(uuid,text) to authenticated;
+grant execute on function public.admin_list_shop_shares(uuid) to authenticated;
+grant execute on function public.admin_revoke_shop_share(uuid,text) to authenticated;
