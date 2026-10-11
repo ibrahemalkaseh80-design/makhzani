@@ -3,124 +3,414 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#111827">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>مخزني | إدارة المخزون</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; }
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f3f4f6;
-      color: #111827;
+      margin: 0; font-family: Arial, sans-serif;
+      background: #f3f5f9; color: #182230;
     }
     header {
-      background: #111827;
-      color: white;
-      padding: 24px 18px;
+      background: #172554; color: white; padding: 22px 16px;
     }
-    header h1 { margin: 0 0 8px; }
-    header p { margin: 0; color: #d1d5db; }
-    main {
-      max-width: 850px;
-      margin: 22px auto;
-      padding: 0 14px;
-    }
+    header h1 { margin: 0 0 7px; }
+    header p { margin: 0; color: #cbd5e1; }
+    main { max-width: 900px; margin: auto; padding: 16px; }
     .card {
-      background: white;
-      border-radius: 14px;
-      padding: 18px;
-      margin-bottom: 16px;
-      box-shadow: 0 2px 8px #0000000a;
+      background: white; padding: 18px; margin: 14px 0;
+      border-radius: 14px; box-shadow: 0 3px 14px #0000000b;
     }
-    input, button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      border-radius: 8px;
-      font-size: 16px;
+    h2 { font-size: 19px; margin-top: 0; }
+    input, select, button {
+      width: 100%; padding: 12px; margin: 6px 0;
+      border-radius: 9px; font-size: 15px;
     }
-    input { border: 1px solid #d1d5db; }
+    input, select { border: 1px solid #cbd5e1; background: white; }
     button {
-      border: 0;
-      background: #2563eb;
-      color: white;
-      cursor: pointer;
+      border: 0; background: #1d4ed8; color: white;
+      font-weight: bold; cursor: pointer;
     }
-    .muted { color: #6b7280; font-size: 14px; }
-    #message { color: #047857; }
+    button.secondary { background: #475569; }
+    button.danger { background: #b91c1c; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .muted { color: #64748b; font-size: 13px; }
+    #message { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .product {
+      border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 12px; margin: 10px 0;
+    }
+    .product strong { font-size: 16px; }
+    .product p { margin: 7px 0; }
+    .hidden { display: none; }
+    @media(max-width: 500px) {
+      .row { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h1>مخزني</h1>
-    <p>نظام إدارة المخزون والمنتجات</p>
-  </header>
+<header>
+  <h1>مخزني</h1>
+  <p>إدارة المنتجات والمخزون بسهولة</p>
+</header>
 
-  <main>
-    <section class="card">
-      <h2>مرحباً بك 👋</h2>
-      <p>هاي أول نسخة من واجهة نظام مخزني.</p>
-      <p class="muted">
-        هذه نسخة تجريبية؛ المنتجات لسه مش محفوظة في قاعدة بيانات.
-      </p>
-    </section>
+<main>
+  <div class="card">
+    <div id="message" role="status" aria-live="polite">جاري تجهيز النظام...</div>
+  </div>
 
-    <section class="card">
-      <h2>إضافة منتج تجريبي</h2>
-      <form id="productForm">
-        <label for="productName">اسم المنتج</label>
-        <input id="productName" required placeholder="مثلاً: شاحن Type-C">
+  <section id="authSection" class="card hidden">
+    <h2>تسجيل الدخول</h2>
+    <form id="loginForm">
+      <input id="email" type="email" placeholder="البريد الإلكتروني" required>
+      <input id="password" type="password" placeholder="كلمة المرور" required>
+      <button type="submit">دخول</button>
+    </form>
+    <button id="signupBtn" class="secondary" type="button">إنشاء حساب جديد</button>
+    <p class="muted">إذا أنشأت حسابك من لوحة Supabase، استخدم نفس البريد وكلمة المرور.</p>
+  </section>
 
-        <label for="barcode">الباركود</label>
-        <input id="barcode" required placeholder="امسح أو اكتب الباركود">
-
-        <label for="quantity">الكمية</label>
-        <input id="quantity" type="number" min="0" step="1" required placeholder="مثلاً: 25">
-
-        <button type="submit">إضافة للقائمة التجريبية</button>
+  <section id="appSection" class="hidden">
+    <div class="card">
+      <h2>المحل</h2>
+      <label for="shopSelect">اختر المحل</label>
+      <select id="shopSelect"></select>
+      <form id="shopForm">
+        <input id="shopName" placeholder="اسم محلك الجديد" required>
+        <button type="submit">إنشاء محل</button>
       </form>
-      <p id="message" role="status"></p>
-    </section>
+      <button id="logoutBtn" class="secondary" type="button">تسجيل الخروج</button>
+    </div>
 
-    <section class="card">
-      <h2>المنتجات المضافة</h2>
-      <div id="products">لسه ما أضفنا منتجات.</div>
-    </section>
-  </main>
+    <div id="inventorySection" class="hidden">
+      <div class="card">
+        <h2>إضافة منتج</h2>
+        <form id="productForm">
+          <input id="productName" placeholder="اسم المنتج" required>
+          <input id="barcode" placeholder="الباركود" required>
+          <div class="row">
+            <input id="quantity" type="number" min="0" step="1"
+              placeholder="الكمية" value="0" required>
+            <input id="salesRep" placeholder="اسم مندوب المبيعات (اختياري)">
+          </div>
+          <button type="submit">حفظ المنتج</button>
+        </form>
+      </div>
 
-  <script>
-    const form = document.getElementById("productForm");
-    const products = document.getElementById("products");
-    const message = document.getElementById("message");
+      <div class="card">
+        <h2>المخزون</h2>
+        <input id="search" placeholder="ابحث بالاسم أو الباركود">
+        <div id="productList">جاري تحميل المنتجات...</div>
+      </div>
+    </div>
+  </section>
+</main>
 
-    form.addEventListener("submit", function(event) {
-      event.preventDefault();
+<script>
+  // ضع رابط مشروعك ومفتاح Publishable Key هنا.
+  const SUPABASE_URL = "https://lxyjfcezhbyoyxenazwa.supabase.co";
+  const SUPABASE_KEY = "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
+
+  const message = document.getElementById("message");
+  const authSection = document.getElementById("authSection");
+  const appSection = document.getElementById("appSection");
+  const inventorySection = document.getElementById("inventorySection");
+  const shopSelect = document.getElementById("shopSelect");
+  const productList = document.getElementById("productList");
+
+  let db = null;
+  let currentUser = null;
+  let products = [];
+
+  function say(text) {
+    message.textContent = text;
+  }
+
+  function show(el, visible) {
+    el.classList.toggle("hidden", !visible);
+  }
+
+  function safeError(error) {
+    console.error(error);
+    say(error?.message || "صار خطأ غير متوقع. حاول مرة ثانية.");
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;",
+      '"': "&quot;", "'": "&#39;"
+    })[ch]);
+  }
+
+  async function loadShops(preferredId = "") {
+    const { data, error } = await db
+      .from("shops")
+      .select("id,name")
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+
+    shopSelect.replaceChildren();
+
+    for (const shop of data || []) {
+      const option = document.createElement("option");
+      option.value = shop.id;
+      option.textContent = shop.name;
+      shopSelect.appendChild(option);
+    }
+
+    if (preferredId && [...shopSelect.options].some(o => o.value === preferredId)) {
+      shopSelect.value = preferredId;
+    }
+
+    const hasShop = shopSelect.options.length > 0;
+    show(inventorySection, hasShop);
+
+    if (hasShop) {
+      await loadProducts();
+    } else {
+      productList.textContent = "أنشئ محلك أولًا لبدء إضافة المنتجات.";
+    }
+  }
+
+  async function loadProducts() {
+    const shopId = shopSelect.value;
+    if (!shopId) return;
+
+    productList.textContent = "جاري تحميل المنتجات...";
+
+    const { data, error } = await db
+      .from("products")
+      .select("id,name,barcode,quantity,sales_rep,created_at")
+      .eq("shop_id", shopId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    products = data || [];
+    renderProducts();
+  }
+
+  function renderProducts() {
+    const term = document.getElementById("search").value.trim().toLowerCase();
+    const filtered = products.filter(p =>
+      String(p.name).toLowerCase().includes(term) ||
+      String(p.barcode).toLowerCase().includes(term)
+    );
+
+    if (!filtered.length) {
+      productList.textContent = products.length
+        ? "ما لقينا منتجات مطابقة للبحث."
+        : "ما فيه منتجات لحد الآن. أضف أول منتج من النموذج أعلاه.";
+      return;
+    }
+
+    productList.innerHTML = "";
+
+    for (const p of filtered) {
+      const item = document.createElement("div");
+      item.className = "product";
+      item.innerHTML = `
+        <strong>${escapeHtml(p.name)}</strong>
+        <p>الباركود: ${escapeHtml(p.barcode)}</p>
+        <p>الكمية: <strong>${escapeHtml(p.quantity)}</strong></p>
+        <p>المندوب: ${escapeHtml(p.sales_rep || "غير محدد")}</p>
+        <div class="row">
+          <button type="button" data-edit="${escapeHtml(p.id)}">تعديل الكمية</button>
+          <button type="button" class="danger" data-delete="${escapeHtml(p.id)}">حذف المنتج</button>
+        </div>
+      `;
+      productList.appendChild(item);
+    }
+  }
+
+  async function refreshApp() {
+    const { data: sessionData, error } = await db.auth.getSession();
+    if (error) throw error;
+
+    currentUser = sessionData.session?.user || null;
+    show(authSection, !currentUser);
+    show(appSection, !!currentUser);
+
+    if (currentUser) {
+      await loadShops();
+      say("تم تسجيل الدخول. اختَر محلك وابدأ بإدارة المخزون.");
+    } else {
+      say("سجّل الدخول للبدء.");
+    }
+  }
+
+  document.getElementById("loginForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    try {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const { error } = await db.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      await refreshApp();
+    } catch (error) {
+      safeError(error);
+    }
+  });
+
+  document.getElementById("signupBtn").addEventListener("click", async () => {
+    try {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (!email || password.length < 8) {
+        say("اكتب البريد الإلكتروني وكلمة مرور من 8 أحرف على الأقل.");
+        return;
+      }
+
+      const { data, error } = await db.auth.signUp({ email, password });
+      if (error) throw error;
+
+      say(data.session
+        ? "تم إنشاء الحساب. يمكنك البدء."
+        : "تم إرسال طلب التسجيل. افحص بريدك لتأكيد الحساب ثم سجّل الدخول.");
+    } catch (error) {
+      safeError(error);
+    }
+  });
+
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    try {
+      const { error } = await db.auth.signOut();
+      if (error) throw error;
+      await refreshApp();
+    } catch (error) {
+      safeError(error);
+    }
+  });
+
+  document.getElementById("shopForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    try {
+      const name = document.getElementById("shopName").value.trim();
+      if (!name) return;
+
+      const { data, error } = await db.rpc("create_shop", { p_name: name });
+      if (error) throw error;
+
+      document.getElementById("shopName").value = "";
+      await loadShops(data);
+      say("تم إنشاء المحل وربط حسابك فيه.");
+    } catch (error) {
+      safeError(error);
+    }
+  });
+
+  shopSelect.addEventListener("change", async () => {
+    try {
+      await loadProducts();
+    } catch (error) {
+      safeError(error);
+    }
+  });
+
+  document.getElementById("productForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    try {
+      const shopId = shopSelect.value;
+      if (!shopId) {
+        say("أنشئ محلك أولًا.");
+        return;
+      }
 
       const name = document.getElementById("productName").value.trim();
       const barcode = document.getElementById("barcode").value.trim();
-      const quantity = document.getElementById("quantity").value;
+      const quantity = Number(document.getElementById("quantity").value);
+      const salesRep = document.getElementById("salesRep").value.trim();
 
-      const item = document.createElement("div");
-      item.className = "card";
-
-      const title = document.createElement("strong");
-      title.textContent = name;
-
-      const details = document.createElement("p");
-      details.textContent = "الباركود: " + barcode +
-        " | الكمية: " + quantity;
-
-      item.append(title, details);
-
-      if (products.textContent.includes("لسه ما أضفنا")) {
-        products.replaceChildren();
+      if (!name || !barcode || !Number.isInteger(quantity) || quantity < 0) {
+        say("تأكد من اسم المنتج والباركود والكمية.");
+        return;
       }
 
-      products.appendChild(item);
-      message.textContent = "تمت إضافة المنتج للتجربة.";
-      form.reset();
-    });
-  </script>
+      const { error } = await db.from("products").insert({
+        shop_id: shopId,
+        name,
+        barcode,
+        quantity,
+        sales_rep: salesRep || null
+      });
+
+      if (error) throw error;
+
+      event.target.reset();
+      document.getElementById("quantity").value = "0";
+      await loadProducts();
+      say("تم حفظ المنتج بنجاح.");
+    } catch (error) {
+      safeError(error);
+    }
+  });
+
+  document.getElementById("search").addEventListener("input", renderProducts);
+
+  productList.addEventListener("click", async event => {
+    const editId = event.target.dataset.edit;
+    const deleteId = event.target.dataset.delete;
+
+    try {
+      if (editId) {
+        const product = products.find(p => p.id === editId);
+        if (!product) return;
+
+        const value = prompt("اكتب الكمية الجديدة:", String(product.quantity));
+        if (value === null) return;
+
+        const quantity = Number(value);
+        if (!Number.isInteger(quantity) || quantity < 0) {
+          say("الكمية لازم تكون عددًا صحيحًا وغير سالب.");
+          return;
+        }
+
+        const { error } = await db.from("products")
+          .update({ quantity }).eq("id", editId).eq("shop_id", shopSelect.value);
+
+        if (error) throw error;
+        await loadProducts();
+        say("تم تحديث الكمية.");
+      }
+
+      if (deleteId) {
+        const product = products.find(p => p.id === deleteId);
+        if (!product || !confirm(`متأكد بدك تحذف المنتج "${product.name}"؟`)) return;
+
+        const { error } = await db.from("products")
+          .delete().eq("id", deleteId).eq("shop_id", shopSelect.value);
+
+        if (error) throw error;
+        await loadProducts();
+        say("تم حذف المنتج.");
+      }
+    } catch (error) {
+      safeError(error);
+    }
+  });
+
+  async function start() {
+    try {
+      if (SUPABASE_KEY === "sb_publishable_W4fz7Wo94Y2NiEXvIDeR7w_JHvZ8gYD") {
+        say("لسه لازم تضيف Publishable Key داخل الكود.");
+        return;
+      }
+
+      db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      await refreshApp();
+
+      db.auth.onAuthStateChange(() => {
+        setTimeout(() => refreshApp().catch(safeError), 0);
+      });
+    } catch (error) {
+      safeError(error);
+    }
+  }
+
+  start();
+</script>
 </body>
 </html>
