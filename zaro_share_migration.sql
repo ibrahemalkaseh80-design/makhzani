@@ -179,8 +179,9 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
-declare inv public.shop_share_invites%rowtype;
-declare user_email text;
+declare
+  inv public.shop_share_invites%rowtype;
+  user_email text;
 begin
   if auth.uid() is null then raise exception 'Sign in first'; end if;
   if p_token_hash !~ '^[0-9a-f]{64}$' then raise exception 'Invalid invitation'; end if;
