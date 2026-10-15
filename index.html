@@ -47,39 +47,46 @@ $('saveBook').onclick=()=>{const key=activeBook+':'+$('bookDate').value;data.boo
 document.addEventListener('click',e=>{const b=e.target.closest('[data-loadbook]');if(b){const [kind,date]=b.dataset.loadbook.split(':');activeBook=kind;$('bookDate').value=date;loadBookDate()}});
 $('allStock').onclick=()=>{$('inventoryList').dataset.zero='0';renderInventory()};$('zeroStock').onclick=()=>{$('inventoryList').dataset.zero='1';renderInventory()};
 async function startScan(target){
- await stopScan();
- const box=$('scanBox'),video=$('video'),status=$('scanStatus');
- box.classList.remove('hidden');
- status.textContent='جاري فتح الكاميرا...';
- if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
-  status.textContent='الكاميرا تحتاج فتح الموقع عبر HTTPS من Chrome.';
-  return;
- }
- try{
-  if(!window.ZXing||!ZXing.BrowserMultiFormatReader){
-   scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
-   video.srcObject=scanStream; await video.play();
-   status.textContent='الكاميرا مفتوحة. إذا لم يظهر قارئ الباركود، أدخل الرقم يدويًا.';
-   return;
-  }
-  scanReader=new ZXing.BrowserMultiFormatReader();
-  status.textContent='وجّه الكاميرا نحو الباركود.';
-  await scanReader.decodeFromVideoDevice(undefined,video,(result)=>{
-   if(result){
-    const value=result.getText();
-    if(target==='add') $('code').value=value;
-    else $('q').value=value;
-    stopScan();
-    if(target==='lookup') renderLookup();
-    say('تم التقاط الباركود.');
+  await stopScan();
+  const box=$('scanBox'),video=$('video'),status=$('scanStatus');
+  box.classList.remove('hidden');
+  box.scrollIntoView({behavior:'smooth',block:'center'});
+  video.style.display='block';
+  video.setAttribute('playsinline','');
+  video.muted=true;
+  status.textContent='جاري طلب تشغيل الكاميرا...';
+  try{
+   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw new Error('NO_CAMERA_API');
+   scanStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'}}});
+   video.srcObject=scanStream;
+   await video.play();
+   status.textContent='الكاميرا مفتوحة داخل الموقع. وجّهها نحو الباركود.';
+   if(window.ZXing&&ZXing.BrowserMultiFormatReader){
+    scanReader=new ZXing.BrowserMultiFormatReader();
+    try{
+     await scanReader.decodeFromStream(scanStream,video,(result,err)=>{
+      if(result){
+       const value=result.getText();
+       if(target==='add') $('code').value=value;
+       else $('q').value=value;
+       status.textContent='تم التقاط الباركود: '+value;
+       if(target==='lookup') renderLookup();
+       stopScan();
+       say('تم التقاط الباركود.');
+      }
+     });
+    }catch(decodeErr){
+     status.textContent='الكاميرا مفتوحة، لكن تعذّر قراءة الباركود. قرّب الباركود أو أدخل الرقم يدويًا.';
+    }
+   }else{
+    status.textContent='الكاميرا مفتوحة. مكتبة قراءة الباركود لم تحمل؛ أدخل الرقم يدويًا.';
    }
-  });
- }catch(e){
-  status.textContent=e&&e.name==='NotAllowedError'?'إذن الكاميرا مرفوض. اسمح لـ Chrome باستخدام الكاميرا من إعدادات الموقع.':'تعذر تشغيل الكاميرا. تأكد من إذن الكاميرا وأن الرابط يبدأ بـ https://';
-  say(status.textContent);
+  }catch(e){
+   status.textContent=e&&e.name==='NotAllowedError'?'إذن الكاميرا مرفوض. اسمح لـ Chrome باستخدام الكاميرا من إعدادات الموقع.':e&&e.message==='NO_CAMERA_API'?'افتح الموقع من Chrome عبر رابط https:// حتى يعمل تشغيل الكاميرا.':'تعذر تشغيل الكاميرا. تأكد من إذن الكاميرا وأغلق أي تطبيق آخر يستخدمها.';
+   say(status.textContent);
+  }
  }
-}
-async function stopScan(){if(scanReader){try{scanReader.reset()}catch(e){}scanReader=null}if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null}if($('video'))$('video').srcObject=null;$('scanBox').classList.add('hidden')}
+ async function stopScan(){if(scanReader){try{scanReader.reset()}catch(e){}scanReader=null}if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null}if($('video'))$('video').srcObject=null;$('scanBox').classList.add('hidden')}
 $('scanLookup').onclick=()=>startScan('lookup');$('scanAdd').onclick=()=>startScan('add');$('stopScan').onclick=stopScan;
 $('export').onclick=()=>{const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),...data},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='zaro-backup-'+today()+'.json';a.click();URL.revokeObjectURL(a.href)};
 $('importFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.products)||!d.books||!confirm('سيتم استبدال البيانات الحالية بالنسخة المستوردة. متابعة؟'))return;data={products:d.products,books:d.books};save();renderManage();say('تم استيراد النسخة.')}catch(err){say('ملف النسخة غير صالح.')}e.target.value=''};
