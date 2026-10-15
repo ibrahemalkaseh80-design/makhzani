@@ -230,6 +230,175 @@ begin
 end;
 $$;
 
+create or replace function public.check_shop_invite_email(p_token_hash text, p_email text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  inv public.shop_share_invites%rowtype;
+begin
+  if p_token_hash !~ '^[0-9a-f]{64}p_token_hash text)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  inv public.shop_share_invites%rowtype;
+  user_email text;
+begin
+  if auth.uid() is null then raise exception 'Sign in first'; end if;
+  if p_token_hash !~ '^[0-9a-f]{64}$' then raise exception 'Invalid invitation'; end if;
+
+  select * into inv
+  from public.shop_share_invites
+  where token_hash = p_token_hash
+  for update;
+
+  if not found then raise exception 'Invitation not found'; end if;
+  if inv.used_at is not null then raise exception 'Invitation already used'; end if;
+  if inv.expires_at <= now() then raise exception 'Invitation expired'; end if;
+
+  select lower(trim(email)) into user_email from auth.users where id = auth.uid();
+  if user_email is null or user_email <> lower(trim(inv.target_email)) then
+    raise exception 'Sign in with the email address this invitation was created for';
+  end if;
+
+  if exists (
+    select 1 from public.shop_members
+    where shop_id = inv.shop_id and user_id = auth.uid()
+  ) then
+    raise exception 'This account is already a member of the shop';
+  end if;
+
+  insert into public.shop_members(shop_id,user_id,role)
+  values (inv.shop_id,auth.uid(),inv.role);
+
+  update public.shop_share_invites set used_at = now() where id = inv.id;
+  return inv.shop_id;
+end;
+$$;
+
+create or replace function public.admin_list_shop_shares(p_shop_id uuid)
+returns table(user_id uuid, email text, role text)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.is_shop_admin(p_shop_id) then
+    raise exception 'Admin role required';
+  end if;
+  return query
+    select sm.user_id, lower(u.email)::text, sm.role::text
+    from public.shop_members sm
+    join auth.users u on u.id = sm.user_id
+    where sm.shop_id = p_shop_id
+      and sm.role in ('Partner','Staff')
+    order by sm.role, lower(u.email);
+end;
+$$;
+
+create or replace function public.admin_revoke_shop_share(p_shop_id uuid, p_email text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare target_email text := lower(trim(coalesce(p_email,'')));
+begin
+  if not public.is_shop_admin(p_shop_id) then
+    raise exception 'Admin role required';
+  end if;
+  if target_email = '' or position('@' in target_email) < 2 then
+    raise exception 'Valid email required';
+  end if;
+
+  -- Revoke active Partner/Staff membership immediately at the database level.
+  delete from public.shop_members sm
+  using auth.users u
+  where sm.user_id = u.id
+    and sm.shop_id = p_shop_id
+    and lower(u.email) = target_email
+    and sm.role in ('Partner','Staff');
+
+  -- Also invalidate any unused QR invitations for this email.
+  delete from public.shop_share_invites i
+  where i.shop_id = p_shop_id
+    and lower(i.target_email) = target_email;
+
+  return true;
+end;
+$$;
+
+create or replace function public.employee_search_products(p_shop_id uuid, p_query text)
+returns table(
+  id uuid,
+  name text,
+  barcode text,
+  sale_price numeric,
+  category text,
+  quantity integer,
+  purchase_price numeric,
+  sales_rep text,
+  sales_rep_phone text
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare q text := lower(trim(coalesce(p_query,'')));
+begin
+  if auth.uid() is null then raise exception 'Sign in first'; end if;
+  if coalesce(public.current_shop_role(p_shop_id),'') not in ('Staff','Admin','Partner') then
+    raise exception 'Shop membership required';
+  end if;
+  if q = '' then return; end if;
+
+  return query
+    select p.id, p.name::text, p.barcode::text, p.sale_price,
+           coalesce(p.category,'أخرى')::text, p.quantity::integer,
+           p.purchase_price, p.sales_rep::text, p.sales_rep_phone::text
+    from public.products p
+    where p.shop_id = p_shop_id
+      and (
+        lower(coalesce(p.name,'')) like '%' || q || '%'
+        or lower(coalesce(p.barcode,'')) like '%' || q || '%'
+        or lower(coalesce(p.category,'')) like '%' || q || '%'
+      )
+    order by p.created_at desc
+    limit 50;
+end;
+$$;
+
+revoke all on function public.admin_create_shop_invite(uuid,text,text,text) from public;
+revoke all on function public.accept_shop_invite(text) from public;
+revoke all on function public.employee_search_products(uuid,text) from public;
+revoke all on function public.admin_list_shop_shares(uuid) from public;
+revoke all on function public.admin_revoke_shop_share(uuid,text) from public;
+grant execute on function public.admin_create_shop_invite(uuid,text,text,text) to authenticated;
+grant execute on function public.check_shop_invite_email(text,text) to anon, authenticated;
+grant execute on function public.accept_shop_invite(text) to authenticated;
+grant execute on function public.employee_search_products(uuid,text) to authenticated;
+grant execute on function public.admin_list_shop_shares(uuid) to authenticated;
+grant execute on function public.admin_revoke_shop_share(uuid,text) to authenticated;
+ then
+    raise exception 'Invalid invitation';
+  end if;
+  select * into inv
+  from public.shop_share_invites
+  where token_hash = p_token_hash;
+  if not found then raise exception 'Invitation not found'; end if;
+  if inv.used_at is not null then raise exception 'Invitation already used'; end if;
+  if inv.expires_at <= now() then raise exception 'Invitation expired'; end if;
+  return lower(trim(coalesce(p_email,''))) = lower(trim(inv.target_email));
+end;
+$;
+
 create or replace function public.accept_shop_invite(p_token_hash text)
 returns uuid
 language plpgsql
