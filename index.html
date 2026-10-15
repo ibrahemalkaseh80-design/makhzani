@@ -13,8 +13,8 @@
 <section id="login" class="panel"><h2>أهلًا في ZARO</h2><p class="muted">نسخة محلية — البيانات محفوظة على هذا الجهاز والمتصفح.</p><label>كلمة مرور الدخول للجهاز (اختيارية)</label><input id="pin" type="password" placeholder="أنشئ كلمة مرور محلية أو اتركها فارغة"><button id="enter" style="width:100%">دخول</button><p class="muted">أول دخول بيسمحلك تعيّن كلمة مرور لهذا الجهاز.</p></section>
 <section id="app" class="hidden">
 <div id="home"><h2 style="text-align:center;margin:25px 0">مرحبًا في ZARO</h2><div class="grid"><button class="homebtn" data-page="lookup"><span class="icon">🔎</span>البحث عن سعر منتج</button><button class="homebtn" data-page="custom"><span class="icon">＋</span>إضافة وإدارة المنتجات</button><button class="homebtn" data-page="notebooks"><span class="icon">📒</span>الدفاتر</button><button class="homebtn" data-page="inventory"><span class="icon">📦</span>المخزون</button><button class="homebtn" data-page="store"><span class="icon">🛍️</span>واجهة المتجر</button><button class="homebtn" data-page="settings"><span class="icon">⚙️</span>الإعدادات</button></div><p class="muted" style="text-align:center">الحفظ تلقائي على هذا الجهاز</p></div>
-<section id="lookup" class="page hidden"><div class="head"><button class="back" data-home>‹</button><h2>البحث عن سعر منتج</h2></div><div class="panel"><label>اسم المنتج أو الكود أو الباركود</label><input id="q" placeholder="اكتب للبحث..."><div class="row"><button id="scanLookup">📷 مسح باركود</button><button class="secondary" id="clearQ">مسح البحث</button></div><div id="scanBox" class="hidden"><video id="video" class="video" playsinline></video><button class="danger" id="stopScan">إيقاف الكاميرا</button></div><div id="results"></div></div></section>
-<section id="custom" class="page hidden"><div class="head"><button class="back" data-home>‹</button><h2 id="formTitle">إضافة منتج</h2></div><div class="panel"><form id="productForm"><input id="pid" type="hidden"><label>اسم المنتج</label><input id="name" placeholder="اسم المنتج"><label>الكود / الباركود</label><div class="row"><input id="code" placeholder="الكود أو الباركود"><button type="button" id="scanAdd">📷 مسح</button></div><label>التصنيف</label><select id="category"><option>موبايلات</option><option>كمبيوتر</option><option>رسيفرات</option><option>سماعات</option><option>إكسسوارات سيارات</option><option>منتجات أخرى</option><option>خدمات</option></select><div class="row"><div><label>سعر الجملة</label><input id="buy" type="number" min="0" step=".01" value="0"></div><div><label>سعر البيع *</label><input id="sale" type="number" min="0" step=".01" required></div></div><div class="row"><div><label>الكمية</label><input id="qty" type="number" min="0" step="1" value="0"></div><div><label>رقم المندوب (اختياري)</label><input id="rep" inputmode="tel"></div></div><button type="submit" style="width:100%">حفظ المنتج</button><button type="button" class="secondary" id="resetForm" style="width:100%;margin-top:8px">تفريغ الحقول</button></form></div><div class="panel"><h3>المنتجات المسجلة</h3><input id="manageQ" placeholder="بحث بالاسم أو الكود"><div id="manageList"></div></div></section>
+<section id="lookup" class="page hidden"><div class="head"><button class="back" data-home>‹</button><h2>البحث عن سعر منتج</h2></div><div class="panel"><label>اسم المنتج أو الكود أو الباركود</label><input id="q" placeholder="اكتب للبحث..."><div class="row"><button id="scanLookup">📷 مسح باركود</button><button class="secondary" id="clearQ">مسح البحث</button></div><div id="results"></div></div></section>
+<section id="custom" class="page hidden"><div class="head"><button class="back" data-home>‹</button><h2 id="formTitle">إضافة منتج</h2></div><div class="panel"><form id="productForm"><input id="pid" type="hidden"><label>اسم المنتج</label><input id="name" placeholder="اسم المنتج"><label>الكود / الباركود</label><div class="row"><input id="code" placeholder="الكود أو الباركود"><button type="button" id="scanAdd">📷 مسح</button></div><div id="scanBox" class="hidden panel"><p id="scanStatus">الكاميرا ستظهر هنا عند الضغط على مسح الباركود.</p><video id="video" class="video" playsinline autoplay muted></video><button type="button" class="danger" id="stopScan">إيقاف الكاميرا</button></div><label>التصنيف</label><select id="category"><option>موبايلات</option><option>كمبيوتر</option><option>رسيفرات</option><option>سماعات</option><option>إكسسوارات سيارات</option><option>منتجات أخرى</option><option>خدمات</option></select><div class="row"><div><label>سعر الجملة</label><input id="buy" type="number" min="0" step=".01" value="0"></div><div><label>سعر البيع *</label><input id="sale" type="number" min="0" step=".01" required></div></div><div class="row"><div><label>الكمية</label><input id="qty" type="number" min="0" step="1" value="0"></div><div><label>رقم المندوب (اختياري)</label><input id="rep" inputmode="tel"></div></div><button type="submit" style="width:100%">حفظ المنتج</button><button type="button" class="secondary" id="resetForm" style="width:100%;margin-top:8px">تفريغ الحقول</button></form></div><div class="panel"><h3>المنتجات المسجلة</h3><input id="manageQ" placeholder="بحث بالاسم أو الكود"><div id="manageList"></div></div></section>
 <section id="inventory" class="page hidden"><div class="head"><button class="back" data-home>‹</button><h2>المخزون</h2></div><div class="panel"><input id="invQ" placeholder="ابحث عن منتج"><div class="tabs"><button id="allStock">كل المنتجات</button><button class="danger" id="zeroStock">نفد من المخزون</button></div><div id="inventoryList"></div></div></section>
 <section id="notebooks" class="page hidden"><div class="head"><button class="back" data-home>‹</button><h2>الدفاتر</h2></div><div class="grid"><button class="homebtn" data-book="daily">📅<br>اليوميات</button><button class="homebtn" data-book="debts">💰<br>الديون</button><button class="homebtn" data-book="notes">📝<br>الملاحظات</button></div><div id="bookEditor" class="panel hidden"><h3 id="bookTitle"></h3><label>التاريخ</label><input type="date" id="bookDate"><textarea id="bookText" rows="8" placeholder="اكتب هنا..."></textarea><button id="saveBook" style="width:100%">حفظ الدفتر</button><div id="bookHistory"></div></div></section>
 <section id="store" class="page hidden"><div class="head"><button class="back" data-home>‹</button><h2>واجهة المتجر</h2></div><div class="panel"><h2>أهلًا في ZARO Mobile Shop</h2><p class="muted">معاينة محلية للمنتجات. هذه الصفحة ليست منشورة للزبائن بعد.</p><div id="storeList"></div></div></section>
@@ -46,7 +46,39 @@ function loadBookDate(){const date=$('bookDate').value;const key=activeBook+':'+
 $('saveBook').onclick=()=>{const key=activeBook+':'+$('bookDate').value;data.books[key]=$('bookText').value;save();loadBookDate();say('تم حفظ الدفتر على الجهاز.')};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-loadbook]');if(b){const [kind,date]=b.dataset.loadbook.split(':');activeBook=kind;$('bookDate').value=date;loadBookDate()}});
 $('allStock').onclick=()=>{$('inventoryList').dataset.zero='0';renderInventory()};$('zeroStock').onclick=()=>{$('inventoryList').dataset.zero='1';renderInventory()};
-async function startScan(target){await stopScan();if(!navigator.mediaDevices?.getUserMedia){say('الكاميرا غير مدعومة بهذا المتصفح.');return}$('scanBox').classList.remove('hidden');try{if(window.ZXing?.BrowserMultiFormatReader){scanReader=new ZXing.BrowserMultiFormatReader();await scanReader.decodeFromVideoDevice(undefined,$('video'),(result)=>{if(result){const v=result.getText();$('code').value=v;$('q').value=v;stopScan();renderLookup();say('تم التقاط الباركود.')}})}else{scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});$('video').srcObject=scanStream;await $('video').play();say('قارئ الباركود غير متاح. أدخل الرقم يدويًا.')}}catch(e){stopScan();say('اسمح للمتصفح باستخدام الكاميرا وتأكد أن الموقع يعمل عبر HTTPS.')}}
+async function startScan(target){
+ await stopScan();
+ const box=$('scanBox'),video=$('video'),status=$('scanStatus');
+ box.classList.remove('hidden');
+ status.textContent='جاري فتح الكاميرا...';
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+  status.textContent='الكاميرا تحتاج فتح الموقع عبر HTTPS من Chrome.';
+  return;
+ }
+ try{
+  if(!window.ZXing||!ZXing.BrowserMultiFormatReader){
+   scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
+   video.srcObject=scanStream; await video.play();
+   status.textContent='الكاميرا مفتوحة. إذا لم يظهر قارئ الباركود، أدخل الرقم يدويًا.';
+   return;
+  }
+  scanReader=new ZXing.BrowserMultiFormatReader();
+  status.textContent='وجّه الكاميرا نحو الباركود.';
+  await scanReader.decodeFromVideoDevice(undefined,video,(result)=>{
+   if(result){
+    const value=result.getText();
+    if(target==='add') $('code').value=value;
+    else $('q').value=value;
+    stopScan();
+    if(target==='lookup') renderLookup();
+    say('تم التقاط الباركود.');
+   }
+  });
+ }catch(e){
+  status.textContent=e&&e.name==='NotAllowedError'?'إذن الكاميرا مرفوض. اسمح لـ Chrome باستخدام الكاميرا من إعدادات الموقع.':'تعذر تشغيل الكاميرا. تأكد من إذن الكاميرا وأن الرابط يبدأ بـ https://';
+  say(status.textContent);
+ }
+}
 async function stopScan(){if(scanReader){try{scanReader.reset()}catch(e){}scanReader=null}if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null}if($('video'))$('video').srcObject=null;$('scanBox').classList.add('hidden')}
 $('scanLookup').onclick=()=>startScan('lookup');$('scanAdd').onclick=()=>startScan('add');$('stopScan').onclick=stopScan;
 $('export').onclick=()=>{const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),...data},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='zaro-backup-'+today()+'.json';a.click();URL.revokeObjectURL(a.href)};
