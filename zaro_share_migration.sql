@@ -2,6 +2,24 @@
 -- Review, then run once in Supabase SQL Editor. This migration changes access policies:
 -- Admin + Partner can manage shop data; Staff can only search products through a restricted RPC.
 
+create table if not exists public.notebook_entries (
+  id uuid primary key default gen_random_uuid(),
+  shop_id uuid not null references public.shops(id) on delete cascade,
+  notebook_type text not null check (notebook_type in ('daily','debts','notes')),
+  entry_date date not null,
+  content text not null default '',
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (shop_id, notebook_type, entry_date)
+);
+alter table public.notebook_entries enable row level security;
+grant select, insert, update, delete on public.notebook_entries to authenticated;
+
+-- Allow product records to be identified by name OR barcode; either can be absent.
+alter table public.products alter column name drop not null;
+alter table public.products alter column barcode drop not null;
+
 create table if not exists public.shop_share_invites (
   id uuid primary key default gen_random_uuid(),
   shop_id uuid not null references public.shops(id) on delete cascade,
@@ -25,7 +43,7 @@ begin
     select schemaname, tablename, policyname
     from pg_policies
     where schemaname = 'public'
-      and tablename in ('shops','products','sales_reps','reminders','daily_sessions','daily_stock_counts','shop_members')
+      and tablename in ('shops','products','sales_reps','reminders','daily_sessions','daily_stock_counts','shop_members','notebook_entries')
   loop
     execute format('drop policy if exists %I on %I.%I', p.policyname, p.schemaname, p.tablename);
   end loop;
@@ -167,6 +185,12 @@ create policy daily_stock_counts_manage_managers on public.daily_stock_counts
     where ds.id = session_id
       and (public.is_shop_admin(ds.shop_id) or public.is_shop_partner(ds.shop_id))
   ));
+
+drop policy if exists notebook_entries_managers on public.notebook_entries;
+create policy notebook_entries_managers on public.notebook_entries
+  for all to authenticated
+  using (public.is_shop_admin(shop_id) or public.is_shop_partner(shop_id))
+  with check (public.is_shop_admin(shop_id) or public.is_shop_partner(shop_id));
 
 -- No direct client reads/writes to shop_members; membership is managed only through guarded RPCs.
 -- The Admin-only functions admin_list_shop_members/admin_add_shop_member_by_email/admin_remove_shop_member
