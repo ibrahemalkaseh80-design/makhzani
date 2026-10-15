@@ -47,12 +47,12 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select exists (
     select 1 from public.shop_members sm
     where sm.shop_id = p_shop_id and sm.user_id = auth.uid()
   );
-$;
+$$;
 
 create or replace function public.is_shop_admin(p_shop_id uuid)
 returns boolean
@@ -60,12 +60,12 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select exists (
     select 1 from public.shop_members sm
     where sm.shop_id = p_shop_id and sm.user_id = auth.uid() and sm.role = 'Admin'
   );
-$;
+$$;
 
 revoke all on function public.is_shop_member(uuid) from public;
 revoke all on function public.is_shop_admin(uuid) from public;
@@ -254,7 +254,7 @@ language plpgsql
 stable
 security definer
 set search_path = ''
-as $
+as $$
 begin
   if not public.is_shop_admin(p_shop_id) then
     raise exception 'Admin role required';
@@ -267,14 +267,14 @@ begin
       and sm.role in ('Partner','Staff')
     order by sm.role, lower(u.email);
 end;
-$;
+$$;
 
 create or replace function public.admin_revoke_shop_share(p_shop_id uuid, p_email text)
 returns boolean
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare target_email text := lower(trim(coalesce(p_email,'')));
 begin
   if not public.is_shop_admin(p_shop_id) then
@@ -299,7 +299,7 @@ begin
 
   return true;
 end;
-$;
+$$;
 
 create or replace function public.employee_search_products(p_shop_id uuid, p_query text)
 returns table(
